@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG Data Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        canvas {
+            max-width: 90%;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <h2>ECG Data Visualization</h2>
+    <canvas id="ecgChart"></canvas>
+
+    <script>
+        let ctx = document.getElementById('ecgChart').getContext('2d');
+
+        let ecgChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],  // Time Labels
+                datasets: [{
+                    label: 'ECG Value',
+                    data: [],  // ECG Values
+                    borderColor: 'red',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'Time (seconds)' } },
+                    y: { title: { display: true, text: 'ECG Value' }, min: 0, max: 1024 }
+                }
+            }
+        });
+
+        async function fetchECGData() {
+            try {
+                const response = await fetch('https://matra-sakhi-y2mnw0-default-rtdb.firebaseio.com/sensor/ecg.json');
+                const data = await response.json();
+
+                if (!data) return;
+
+                let timestampInSeconds = Math.floor(data.timestamp / 1000); // Convert milliseconds to seconds
+                let value = parseFloat(data.value); // Get ECG Value
+
+                updateChart(timestampInSeconds, value);
+            } catch (error) {
+                console.error("Error fetching ECG data:", error);
+            }
+        }
+
+        function updateChart(timestamp, value) {
+            if (ecgChart.data.labels.length > 50) {
+                ecgChart.data.labels.shift(); // Remove oldest timestamp
+                ecgChart.data.datasets[0].data.shift(); // Remove oldest ECG value
+            }
+
+            ecgChart.data.labels.push(timestamp);
+            ecgChart.data.datasets[0].data.push(value);
+            ecgChart.update();
+        }
+
+        setInterval(fetchECGData, 1000); // Fetch data every second
+        fetchECGData(); // Initial load
+    </script>
+</body>
+</html>
