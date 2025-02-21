@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG Data Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        canvas {
+            max-width: 90%;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <h2>ECG Data Visualization</h2>
+    <canvas id="ecgChart"></canvas>
+
+    <script>
+        let ctx = document.getElementById('ecgChart').getContext('2d');
+
+        let ecgChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],  // Timestamps
+                datasets: [{
+                    label: 'ECG Value',
+                    data: [],  // ECG readings
+                    borderColor: 'red',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Time' }
+                    },
+                    y: {
+                        title: { display: true, text: 'ECG Value' },
+                        min: 0,
+                        max: 1024
+                    }
+                }
+            }
+        });
+
+        async function fetchECGData() {
+            try {
+                const response = await fetch('https://matra-sakhi-y2mnw0-default-rtdb.firebaseio.com/sensor/ecg.json');
+                const data = await response.json();
+
+                if (!data) return;
+
+                let timestamps = [];
+                let values = [];
+
+                // Assuming ECG data is stored as an array of objects {value: 123, timestamp: 1713800000}
+                Object.keys(data).forEach(key => {
+                    timestamps.push(new Date(data[key].timestamp * 1000).toLocaleTimeString()); // Convert Unix timestamp
+                    values.push(parseFloat(data[key].value)); // Parse ECG value
+                });
+
+                updateChart(timestamps, values);
+            } catch (error) {
+                console.error("Error fetching ECG data:", error);
+            }
+        }
+
+        function updateChart(timestamps, values) {
+            ecgChart.data.labels = timestamps;
+            ecgChart.data.datasets[0].data = values;
+            ecgChart.update();
+        }
+
+        // Fetch ECG data every second (real-time update)
+        setInterval(fetchECGData, 1000);
+
+        // Initial load
+        fetchECGData();
+    </script>
+</body>
+</html>
